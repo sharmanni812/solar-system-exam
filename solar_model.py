@@ -8,6 +8,11 @@ gravitational_constant = 6.67408E-11
 def calculate_force(body, space_objects):
     """Вычисляет силу, действующую на тело.
 
+    Для каждого другого объекта system'ы вычисляется гравитационная сила
+    по закону Ньютона:
+        F = G * m1 * m2 / r^2
+    и раскладывается на компоненты Fx, Fy пропорционально (dx/r, dy/r).
+
     Параметры:
 
     **body** — тело, для которого нужно вычислить дейстующую силу.
@@ -18,23 +23,33 @@ def calculate_force(body, space_objects):
     for obj in space_objects:
         if body == obj:
             continue  # тело не действует гравитационной силой на само себя!
-        r = ((body.x - obj.x)**2 + (body.y - obj.y)**2)**0.5
-        body.Fx += 1  # FIXME: нужно вывести формулу...
-        body.Fy += 2  # FIXME: нужно вывести формулу...
+        r = ((body.x - obj.x) ** 2 + (body.y - obj.y) ** 2) ** 0.5
+        if r == 0:
+            continue  # избегаем деления на ноль при совпадении координат
+        force = gravitational_constant * body.m * obj.m / r ** 2
+        # компоненты силы направлены от body к obj (притяжение)
+        body.Fx += force * (obj.x - body.x) / r
+        body.Fy += force * (obj.y - body.y) / r
 
 
 def move_space_object(body, dt):
     """Перемещает тело в соответствии с действующей на него силой.
 
+    Используется метод Эйлера: сначала обновляется скорость по
+    ускорению a = F/m, затем по новой скорости обновляется координата.
+
     Параметры:
 
     **body** — тело, которое нужно переместить.
+    **dt** — шаг по времени.
     """
 
-    ax = body.Fx/body.m
-    body.x += 42  # FIXME: не понимаю как менять...
-    body.Vx += ax*dt
-    # FIXME: not done recalculation of y coordinate!
+    ax = body.Fx / body.m
+    ay = body.Fy / body.m
+    body.Vx += ax * dt
+    body.Vy += ay * dt
+    body.x += body.Vx * dt
+    body.y += body.Vy * dt
 
 
 def recalculate_space_objects_positions(space_objects, dt):
