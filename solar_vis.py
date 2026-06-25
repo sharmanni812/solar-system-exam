@@ -20,10 +20,10 @@ from solar_objects import SpaceObject, Star, Planet, Satellite
 header_font = "Arial-16"
 """Шрифт в заголовке"""
 
-window_width = 800
+window_width = 1500
 """Ширина окна"""
 
-window_height = 800
+window_height = 850
 """Высота окна"""
 
 scale_factor = None
