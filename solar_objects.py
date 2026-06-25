@@ -149,9 +149,10 @@ def build_ticket_7_system() -> List[SpaceObject]:
         for i in range(planet_count):
             orbit_index = i + 1
             clockwise = (orbit_index % 2 == 0)
-            
+            PHI = (1 + math.sqrt(5)) / 2  # Золотое сечение для красивого распределения углов
+            angle0 = i * (2 * math.pi / PHI)  # Начальный угол для "парада планет"
             # Создаем планету, начальный угол 0.0 для "парада планет"
-            planet = Planet(4, "green", 5.0e24, orbit_index, 0.0, clockwise)
+            planet = Planet(4, "green", 5.0e24, orbit_index, angle0, clockwise)
             planet.star = star
             
             # Применяем выверенные радиусы
