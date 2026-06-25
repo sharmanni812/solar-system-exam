@@ -29,6 +29,8 @@ class SpaceObject:
         self.y: float = y
         self.image: Optional[int] = None
         self.orbit_image: Optional[int] = None
+        self.Fx: float = 0.0
+        self.Fy: float = 0.0
 
     @property
     def type(self) -> str:
@@ -91,8 +93,7 @@ class Planet(SpaceObject):
         omega = self.ANGULAR_SPEED 
         self.angle += sign * omega * dt
         self._update_xy()
-        for sat in self.satellites:
-            sat.step(dt)
+        
 
 
 class Satellite(SpaceObject):

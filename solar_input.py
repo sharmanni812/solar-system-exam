@@ -1,107 +1,97 @@
 # coding: utf-8
 # license: GPLv3
 
-from solar_objects import Star, Planet
-
+from solar_objects import Star, Planet, Satellite
 
 def read_space_objects_data_from_file(input_filename):
-    """Cчитывает данные о космических объектах из файла, создаёт сами объекты
-    и вызывает создание их графических образов
-
-    Параметры:
-
-    **input_filename** — имя входного файла
+    """Считывает данные о космических объектах из файла и восстанавливает ООП-связи.
+    Использует 3 прохода, чтобы сначала создать Звезды, потом Планеты, потом Спутники.
     """
-
     objects = []
-    with open(input_filename) as input_file:
-        for line in input_file:
-            if len(line.strip()) == 0 or line[0] == '#':
-                continue  # пустые строки и строки-комментарии пропускаем
-            object_type = line.split()[0].lower()
-            if object_type == "star":
-                star = Star()
-                parse_star_parameters(line, star)
-                objects.append(star)
-            elif object_type == "planet":
-                planet = Planet()
-                parse_planet_parameters(line, planet)
-                objects.append(planet)
-            else:
-                print("Unknown space object")
+    stars_by_id = {}
+    planets_by_id = {}
+    
+    try:
+        with open(input_filename, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    except FileNotFoundError:
+        print(f"Файл {input_filename} не найден. Загружаем систему по умолчанию.")
+        return []
 
+    # Проход 1: Создаем Звезды
+    for line in lines:
+        parts = line.strip().split()
+        if not parts or parts[0] == '#': continue
+        
+        if parts[0] == 'Star':
+            # Формат: Star R color m x y star_id
+            star = Star(int(parts[1]), parts[2], float(parts[3]), float(parts[4]), float(parts[5]))
+            star_id = int(parts[6])
+            stars_by_id[star_id] = star
+            objects.append(star)
+            
+    # Проход 2: Создаем Планеты и привязываем их к Звездам
+    for line in lines:
+        parts = line.strip().split()
+        if not parts or parts[0] == '#': continue
+        
+        if parts[0] == 'Planet':
+            # Формат: Planet R color m orbit_index angle clockwise star_id
+            orbit_index = int(parts[4])
+            angle = float(parts[5])
+            clockwise = bool(int(parts[6]))
+            star_id = int(parts[7])
+            saved_orbit_radius = float(parts[8])
+            
+            planet = Planet(int(parts[1]), parts[2], float(parts[3]), orbit_index, angle, clockwise)
+            planet.orbit_radius = saved_orbit_radius
+            planet._update_xy()  # Обновляем координаты планеты на основе сохранённого угла и радиуса орбиты
+            # Восстанавливаем связь с родителем
+            if star_id in stars_by_id:
+                stars_by_id[star_id].add_planet(planet)
+                
+            planet_id = len(planets_by_id)
+            planets_by_id[planet_id] = planet
+            objects.append(planet)
+
+    # Проход 3: Создаем Спутники и привязываем их к Планетам
+    for line in lines:
+        parts = line.strip().split()
+        if not parts or parts[0] == '#': continue
+        
+        if parts[0] == 'Satellite':
+            # Формат: Satellite R color m angle clockwise planet_id
+            angle = float(parts[4])
+            clockwise = bool(int(parts[5]))
+            planet_id = int(parts[6])
+            
+            sat = Satellite(int(parts[1]), parts[2], float(parts[3]), angle, clockwise)
+            
+            # Восстанавливаем связь с родителем
+            if planet_id in planets_by_id:
+                planets_by_id[planet_id].add_satellite(sat)
+                
+            objects.append(sat)
+            
     return objects
 
-
-def parse_star_parameters(line, star):
-    """Считывает данные о звезде из строки.
-    Входная строка должна иметь слеюущий формат:
-    Star <радиус в пикселах> <цвет> <масса> <x> <y> <Vx> <Vy>
-
-    Здесь (x, y) — координаты зведы, (Vx, Vy) — скорость.
-    Пример строки:
-    Star 10 red 1000 1 2 3 4
-
-    Параметры:
-
-    **line** — строка с описание звезды.
-    **star** — объект звезды.
-    """
-
-    parts = line.split()
-    # parts[0] -- слово "Star", его игнорируем
-    star.R = int(parts[1])
-    star.color = parts[2]
-    star.m = float(parts[3])
-    star.x = float(parts[4])
-    star.y = float(parts[5])
-    star.Vx = float(parts[6])
-    star.Vy = float(parts[7])
-
-
-def parse_planet_parameters(line, planet):
-    """Считывает данные о планете из строки.
-    Предполагается такая строка:
-    Входная строка должна иметь слеюущий формат:
-    Planet <радиус в пикселах> <цвет> <масса> <x> <y> <Vx> <Vy>
-
-    Здесь (x, y) — координаты планеты, (Vx, Vy) — скорость.
-    Пример строки:
-    Planet 10 red 1000 1 2 3 4
-
-    Параметры:
-
-    **line** — строка с описание планеты.
-    **planet** — объект планеты.
-    """
-    parts = line.split()
-    # parts[0] -- слово "Planet", его игнорируем
-    planet.R = int(parts[1])
-    planet.color = parts[2]
-    planet.m = float(parts[3])
-    planet.x = float(parts[4])
-    planet.y = float(parts[5])
-    planet.Vx = float(parts[6])
-    planet.Vy = float(parts[7])
-
-
 def write_space_objects_data_to_file(output_filename, space_objects):
-    """Сохраняет данные о космических объектах в файл.
-    Строки должны иметь следующий формат:
-    Star <радиус в пикселах> <цвет> <масса> <x> <y> <Vx> <Vy>
-    Planet <радиус в пикселах> <цвет> <масса> <x> <y> <Vx> <Vy>
-
-    Параметры:
-
-    **output_filename** — имя входного файла
-    **space_objects** — список объектов планет и звёзд
-    """
-    with open(output_filename, 'w') as out_file:
+    """Сохраняет кинематическое состояние и ООП-связи объектов в файл."""
+    # Назначаем временные ID для восстановления связей при загрузке
+    star_ids = {id(obj): i for i, obj in enumerate(space_objects) if isinstance(obj, Star)}
+    planet_ids = {id(obj): i for i, obj in enumerate(space_objects) if isinstance(obj, Planet)}
+    
+    with open(output_filename, 'w', encoding='utf-8') as f:
         for obj in space_objects:
-            print("%s %d %s %e %e %e %e %e" % (
-                obj.type.capitalize(), obj.R, obj.color, obj.m,
-                obj.x, obj.y, obj.Vx, obj.Vy), file=out_file)
-
+            if isinstance(obj, Star):
+                f.write(f"Star {obj.R} {obj.color} {obj.m} {obj.x} {obj.y} {star_ids[id(obj)]}\n")
+            elif isinstance(obj, Planet):
+                star_id = star_ids.get(id(obj.star), -1)
+                # Сохраняем текущий угол (angle), чтобы при загрузке анимация продолжилась с того же места
+                f.write(f"Planet {obj.R} {obj.color} {obj.m} {obj.orbit_index} {obj.angle} {int(obj.clockwise)} {star_id} {obj.orbit_radius}\n")
+            elif isinstance(obj, Satellite):
+                planet_id = planet_ids.get(id(obj.planet), -1)
+                f.write(f"Satellite {obj.R} {obj.color} {obj.m} {obj.angle} {int(obj.clockwise)} {planet_id}\n")
 
 if __name__ == "__main__":
     print("This module is not for direct call!")

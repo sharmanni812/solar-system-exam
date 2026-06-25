@@ -42,14 +42,18 @@ def move_space_object(body, dt):
 
     **body** — тело, которое нужно переместить.
     **dt** — шаг по времени.
-    """
 
-    ax = body.Fx / body.m
+    Вместо того, чтобы использовать метод Эйлера, можно использовать 
+    кинематическую модель step() для сохранения стабильности пересекающихся орбит. 
+    """
+    """ax = body.Fx / body.m
     ay = body.Fy / body.m
     body.Vx += ax * dt
     body.Vy += ay * dt
     body.x += body.Vx * dt
-    body.y += body.Vy * dt
+    body.y += body.Vy * dt"""
+    if hasattr(body, 'step'):
+        body.step(dt)  # для планет и спутников вызываем их метод step()
 
 
 def recalculate_space_objects_positions(space_objects, dt):
