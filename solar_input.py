@@ -45,7 +45,6 @@ def read_space_objects_data_from_file(input_filename):
             
             planet = Planet(int(parts[1]), parts[2], float(parts[3]), orbit_index, angle, clockwise)
             planet.orbit_radius = saved_orbit_radius
-            planet._update_xy()  # Обновляем координаты планеты на основе сохранённого угла и радиуса орбиты
             # Восстанавливаем связь с родителем
             if star_id in stars_by_id:
                 stars_by_id[star_id].add_planet(planet)

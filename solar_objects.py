@@ -50,6 +50,7 @@ class Star(SpaceObject):
 
     def add_planet(self, planet: "Planet") -> None:
         planet.star = self
+        planet._update_xy()  
         self.planets.append(planet)
 
     def step(self, dt: float) -> None:
@@ -79,6 +80,7 @@ class Planet(SpaceObject):
 
     def add_satellite(self, satellite: "Satellite") -> None:
         satellite.planet = self
+        satellite._update_xy()
         self.satellites.append(satellite)
 
     def _update_xy(self) -> None:
