@@ -11,7 +11,7 @@ from solar_vis import (
     update_object_position, update_system_name, set_orbits_visible,
 )
 from solar_objects import SpaceObject, Planet, build_ticket_7_system
-from solar_model import recalculate_space_objects_positions
+import solar_model #Импортируем модуль solar_model, чтобы использовать его функции и переменные
 from solar_input import write_space_objects_data_to_file, read_space_objects_data_from_file
 
 # --- Глобальные переменные ---
@@ -24,7 +24,16 @@ orbits_visible = None
 space_objects: List[SpaceObject] = []
 space = None
 start_button = None
+physics_button = None # Кнопка физики
 root_window = None  # Ссылка на главное окно Tkinter
+
+# --- Новая функция ---
+def toggle_physics():
+    solar_model.PHYSICS_MODE = not solar_model.PHYSICS_MODE
+    status = "PHYSICS ON" if solar_model.PHYSICS_MODE else "PHYSICS OFF"
+    color = "#4CAF50" if solar_model.PHYSICS_MODE else "#f0f0f0"
+    if physics_button:
+        physics_button.config(text=status, bg=color)
 
 # --- Функции сохранения/загрузки ---
 def save_to_file():
@@ -48,7 +57,10 @@ def load_from_file():
 def execution() -> None:
     global physical_time
     dt = time_step.get()
-    recalculate_space_objects_positions(space_objects, dt)
+
+    # ИСПРАВЛЕНИЕ: Добавлено solar_model. перед вызовом функции
+    solar_model.recalculate_space_objects_positions(space_objects, dt)
+    
     for obj in space_objects:
         update_object_position(space, obj)
     physical_time += dt
@@ -158,6 +170,10 @@ def build_simulation_ui():
 
     start_button = tkinter.Button(frame, text="Start", command=start_execution, width=6)
     start_button.pack(side=tkinter.LEFT)
+
+    #Кнопка переключения физики
+    physics_button = tkinter.Button(frame, text="PHYSICS OFF", command=toggle_physics, width=12)
+    physics_button.pack(side=tkinter.LEFT)
 
     time_step = tkinter.DoubleVar()
     time_step.set(0.05)

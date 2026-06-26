@@ -27,6 +27,9 @@ class SpaceObject:
         self.m: float = m
         self.x: float = x
         self.y: float = y
+        self.Vx: float = 0.0
+        self.Vy: float = 0.0
+        """Добавление атрибутов для хранения силы, действующей на объект"""
         self.image: Optional[int] = None
         self.orbit_image: Optional[int] = None
         self.Fx: float = 0.0
@@ -89,6 +92,13 @@ class Planet(SpaceObject):
         self.x = cx + self.orbit_radius * math.cos(self.angle)
         self.y = cy + self.orbit_radius * math.sin(self.angle)
 
+        # --- ПОДГОТОВКА СКОРОСТИ ДЛЯ ПЛАВНОГО ПЕРЕХОДА В ФИЗИКУ ---
+        sign = 1.0 if self.clockwise else -1.0
+        v_linear = self.orbit_radius * self.ANGULAR_SPEED
+        self.Vx = -v_linear * math.sin(self.angle) * sign
+        self.Vy =  v_linear * math.cos(self.angle) * sign
+
+
     def step(self, dt: float) -> None:
         sign = 1.0 if self.clockwise else -1.0
         # Единая скорость для сохранения формации луча
@@ -118,6 +128,14 @@ class Satellite(SpaceObject):
         self.x = px + self.ORBIT_RADIUS * math.cos(self.angle)
         self.y = py + self.ORBIT_RADIUS * math.sin(self.angle)
 
+        # --- СКОРОСТЬ СПУТНИКА = СКОРОСТЬ ПЛАНЕТЫ + СОБСТВЕННАЯ СКОРОСТЬ ---
+        sign = 1.0 if self.clockwise else -1.0
+        v_rel = self.ORBIT_RADIUS * self.ANGULAR_SPEED
+        rel_vx = -v_rel * math.sin(self.angle) * sign
+        rel_vy =  v_rel * math.cos(self.angle) * sign
+        self.Vx = (self.planet.Vx if self.planet else 0.0) + rel_vx
+        self.Vy = (self.planet.Vy if self.planet else 0.0) + rel_vy
+
     def step(self, dt: float) -> None:
         sign = 1.0 if self.clockwise else -1.0
         self.angle += sign * self.ANGULAR_SPEED * dt
@@ -134,7 +152,7 @@ def build_ticket_7_system() -> List[SpaceObject]:
     stars_spec = [
         # (R, color, m, x, y, planet_count, with_sats, start_rad, step)
         # Главная (orange) уходит влево по оси X
-        (22, "orange", 1.6e30, -138.0, 0.0, 20, True, 280.0, 10.0),    
+        (22, "orange", 1.6e30, -136.0, 0.0, 20, True, 280.0, 10.0),    
         # Желтая и красная уходят вправо и раздвигаются вверх/вниз
         (16, "yellow", 1.0e30, 70.0, -120.0, 10, False, 280.0, 10.0), 
         (16, "red", 1.0e30, 70.0, 120.0, 10, False, 280.0, 10.0),     
@@ -149,9 +167,10 @@ def build_ticket_7_system() -> List[SpaceObject]:
         for i in range(planet_count):
             orbit_index = i + 1
             clockwise = (orbit_index % 2 == 0)
-            
+            PHI = (1 + math.sqrt(5)) / 2  # Золотое сечение для красивого распределения углов
+            angle0 = i * (2 * math.pi / PHI)  # Начальный угол для "парада планет"
             # Создаем планету, начальный угол 0.0 для "парада планет"
-            planet = Planet(4, "green", 5.0e24, orbit_index, 0.0, clockwise)
+            planet = Planet(4, "green", 5.0e24, orbit_index, angle0, clockwise)
             planet.star = star
             
             # Применяем выверенные радиусы

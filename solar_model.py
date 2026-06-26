@@ -1,9 +1,9 @@
 # coding: utf-8
 # license: GPLv3
 
-gravitational_constant = 6.67408E-11
-"""Гравитационная постоянная Ньютона G"""
+gravitational_constant = 4.937E-24
 
+PHYSICS_MODE = False
 
 def calculate_force(body, space_objects):
     """Вычисляет силу, действующую на тело.
@@ -22,10 +22,14 @@ def calculate_force(body, space_objects):
     body.Fx = body.Fy = 0
     for obj in space_objects:
         if body == obj:
-            continue  # тело не действует гравитационной силой на само себя!
-        r = ((body.x - obj.x) ** 2 + (body.y - obj.y) ** 2) ** 0.5
-        if r == 0:
-            continue  # избегаем деления на ноль при совпадении координат
+            continue  
+        dx = obj.x - body.x
+        dy = obj.y - body.y
+        r = (dx**2 + dy**2)**0.5
+        # Защита от деления на ноль при столкновении
+        if r < max(body.R, obj.R):
+            continue  
+        # избегаем деления на ноль при совпадении координат
         force = gravitational_constant * body.m * obj.m / r ** 2
         # компоненты силы направлены от body к obj (притяжение)
         body.Fx += force * (obj.x - body.x) / r
@@ -46,14 +50,21 @@ def move_space_object(body, dt):
     Вместо того, чтобы использовать метод Эйлера, можно использовать 
     кинематическую модель step() для сохранения стабильности пересекающихся орбит. 
     """
-    """ax = body.Fx / body.m
-    ay = body.Fy / body.m
-    body.Vx += ax * dt
-    body.Vy += ay * dt
-    body.x += body.Vx * dt
-    body.y += body.Vy * dt"""
-    if hasattr(body, 'step'):
-        body.step(dt)  # для планет и спутников вызываем их метод step()
+    global PHYSICS_MODE
+    if PHYSICS_MODE:
+        # Звезды остаются на месте (слишком тяжелые), двигаем только планеты/спутники
+        if body.type == 'star':
+            return
+        ax = body.Fx / body.m
+        ay = body.Fy / body.m
+        body.Vx += ax * dt
+        body.Vy += ay * dt
+        body.x += body.Vx * dt
+        body.y += body.Vy * dt
+    else:
+        # Используем кинематическую модель для сохранения стабильности пересекающихся орбит
+        if hasattr(body, 'step'):
+            body.step(dt)  # для планет и спутников вызываем их метод step()
 
 
 def recalculate_space_objects_positions(space_objects, dt):
@@ -64,9 +75,11 @@ def recalculate_space_objects_positions(space_objects, dt):
     **space_objects** — список оьъектов, для которых нужно пересчитать координаты.
     **dt** — шаг по времени
     """
-
-    for body in space_objects:
-        calculate_force(body, space_objects)
+    global PHYSICS_MODE
+    if PHYSICS_MODE:
+        for body in space_objects:
+            calculate_force(body, space_objects)
+            
     for body in space_objects:
         move_space_object(body, dt)
 
