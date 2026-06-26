@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 import tkinter
+import math
 from typing import List
 
 from solar_vis import (
@@ -24,27 +25,47 @@ orbits_visible = None
 space_objects: List[SpaceObject] = []
 space = None
 start_button = None
-physics_button = None # Кнопка физики
+btn_physics_on = None
+btn_physics_off = None
 root_window = None  # Ссылка на главное окно Tkinter
 
 # --- Новая функция ---
-def toggle_physics():
-    solar_model.PHYSICS_MODE = not solar_model.PHYSICS_MODE
-    status = "PHYSICS ON" if solar_model.PHYSICS_MODE else "PHYSICS OFF"
-    color = "#4CAF50" if solar_model.PHYSICS_MODE else "#f0f0f0"
-    if physics_button:
-        physics_button.config(text=status, bg=color)
+def set_physics_on():
+    """Включает физическую модель (законы Ньютона)."""
+    solar_model.PHYSICS_MODE = True
+    btn_physics_on.config(bg="#4CAF50", fg="white") # Зеленый
+    btn_physics_off.config(bg="#f0f0f0", fg="black") # Серый
+    print("Физика ВКЛЮЧЕНА")
 
-#Парад планет
+def set_physics_off():
+    """Выключает физику (возврат к стабильным орбитам)."""
+    solar_model.PHYSICS_MODE = False
+    btn_physics_on.config(bg="#f0f0f0", fg="black") # Серый
+    btn_physics_off.config(bg="#F44336", fg="white") # Красный
+    print("Физика ВЫКЛЮЧЕНА")
+
+def arrange_ideal_chaos():
+    """Возвращает планеты на начальные идеальные углы (золотое сечение)."""
+    PHI = (1 + math.sqrt(5)) / 2
+    for obj in space_objects:
+        if isinstance(obj, Planet):
+            obj.angle = (obj.orbit_index - 1) * (2 * math.pi / PHI)
+            obj._update_xy()
+            update_object_position(space, obj)
+        elif isinstance(obj, Satellite):
+            obj.angle = 0.0
+            obj._update_xy()
+            update_object_position(space, obj)
+    print("Планеты расставлены по идеальным углам!")
+
 def align_in_ray():
-    """Выстраивает все планеты и спутники в единый луч."""
+    """Выстраивает все планеты и спутники в единый луч (парад планет)."""
     for obj in space_objects:
         if isinstance(obj, Planet) or isinstance(obj, Satellite):
             obj.angle = 0.0
-            # Пересчитываем X, Y и начальные векторы скоростей Vx, Vy для новой позиции
             obj._update_xy() 
             update_object_position(space, obj)
-    print("Планеты выстроены в луч!")
+    print("Планеты выстроены в парад планет!")
 
 # --- Функции сохранения/загрузки ---
 def save_to_file():
@@ -172,7 +193,8 @@ def build_simulation_ui():
     """Создает холст и панель управления симуляцией."""
     global root_window, space, start_button, orbits_visible
     global physical_time, displayed_time, time_step, time_speed
-    
+    global btn_physics_on, btn_physics_off
+
     space = tkinter.Canvas(root_window, width=window_width, height=window_height, bg="black")
     space.pack(side=tkinter.TOP)
 
@@ -183,12 +205,23 @@ def build_simulation_ui():
     start_button.pack(side=tkinter.LEFT)
 
     #Кнопка переключения физики
-    physics_button = tkinter.Button(frame, text="PHYSICS OFF", command=toggle_physics, width=12)
-    physics_button.pack(side=tkinter.LEFT)
+    btn_physics_on = tkinter.Button(frame, text="Physics ON", command=set_physics_on, width=10)
+    btn_physics_on.pack(side=tkinter.LEFT, padx=2)
 
-    #Кнопка выстраивания планет в луч
-    ray_button = tkinter.Button(frame, text="Ray Mode", command=align_in_ray, width=10)
-    ray_button.pack(side=tkinter.LEFT, padx=5)
+    btn_physics_off = tkinter.Button(frame, text="Physics OFF", command=set_physics_off, width=10, bg="#F44336", fg="white")
+    btn_physics_off.pack(side=tkinter.LEFT, padx=2)
+
+    # --- 3. Расположение: Идеальный угол (Хаос) ---
+    btn_chaos = tkinter.Button(frame, text="Ideal Angles", command=arrange_ideal_chaos, width=12)
+    btn_chaos.pack(side=tkinter.LEFT, padx=2)
+
+    # --- 4. Расположение: Парад планет ---
+    btn_parade = tkinter.Button(frame, text="Planet Parade", command=align_in_ray, width=12)
+    btn_parade.pack(side=tkinter.LEFT, padx=2)
+
+    time_step = tkinter.DoubleVar()
+    time_step.set(0.05)
+    tkinter.Entry(frame, textvariable=time_step, width=6).pack(side=tkinter.LEFT)
 
     time_step = tkinter.DoubleVar()
     time_step.set(0.05)
