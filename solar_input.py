@@ -76,17 +76,22 @@ def read_space_objects_data_from_file(input_filename):
 
 def write_space_objects_data_to_file(output_filename, space_objects):
     """Сохраняет кинематическое состояние и ООП-связи объектов в файл."""
-    # Назначаем временные ID для восстановления связей при загрузке
-    star_ids = {id(obj): i for i, obj in enumerate(space_objects) if isinstance(obj, Star)}
-    planet_ids = {id(obj): i for i, obj in enumerate(space_objects) if isinstance(obj, Planet)}
+    
+    # ИСПРАВЛЕНИЕ: Нумеруем объекты строго по их типу от 0 и далее, 
+    # чтобы при загрузке индексы идеально совпадали!
+    stars = [obj for obj in space_objects if isinstance(obj, Star)]
+    planets = [obj for obj in space_objects if isinstance(obj, Planet)]
+    
+    star_ids = {id(star): i for i, star in enumerate(stars)}
+    planet_ids = {id(planet): i for i, planet in enumerate(planets)}
     
     with open(output_filename, 'w', encoding='utf-8') as f:
         for obj in space_objects:
             if isinstance(obj, Star):
-                f.write(f"Star {obj.R} {obj.color} {obj.m} {obj.x} {obj.y} {star_ids[id(obj)]}\n")
+                f.write(f"Star {obj.R} {obj.color} {obj.m} {obj.x} {obj.y} {star_ids.get(id(obj), -1)}\n")
             elif isinstance(obj, Planet):
                 star_id = star_ids.get(id(obj.star), -1)
-                # Сохраняем текущий угол (angle), чтобы при загрузке анимация продолжилась с того же места
+                # Сохраняем текущий угол и радиус
                 f.write(f"Planet {obj.R} {obj.color} {obj.m} {obj.orbit_index} {obj.angle} {int(obj.clockwise)} {star_id} {obj.orbit_radius}\n")
             elif isinstance(obj, Satellite):
                 planet_id = planet_ids.get(id(obj.planet), -1)
