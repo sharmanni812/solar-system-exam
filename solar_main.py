@@ -10,7 +10,7 @@ from solar_vis import (
     calculate_scale_factor, create_object_image, create_orbit_image,
     update_object_position, update_system_name, set_orbits_visible,
 )
-from solar_objects import SpaceObject, Planet, build_ticket_7_system
+from solar_objects import SpaceObject, Planet, Satellite, build_ticket_7_system
 import solar_model #Импортируем модуль solar_model, чтобы использовать его функции и переменные
 from solar_input import write_space_objects_data_to_file, read_space_objects_data_from_file
 
@@ -34,6 +34,17 @@ def toggle_physics():
     color = "#4CAF50" if solar_model.PHYSICS_MODE else "#f0f0f0"
     if physics_button:
         physics_button.config(text=status, bg=color)
+
+#Парад планет
+def align_in_ray():
+    """Выстраивает все планеты и спутники в единый луч."""
+    for obj in space_objects:
+        if isinstance(obj, Planet) or isinstance(obj, Satellite):
+            obj.angle = 0.0
+            # Пересчитываем X, Y и начальные векторы скоростей Vx, Vy для новой позиции
+            obj._update_xy() 
+            update_object_position(space, obj)
+    print("Планеты выстроены в луч!")
 
 # --- Функции сохранения/загрузки ---
 def save_to_file():
@@ -175,6 +186,10 @@ def build_simulation_ui():
     physics_button = tkinter.Button(frame, text="PHYSICS OFF", command=toggle_physics, width=12)
     physics_button.pack(side=tkinter.LEFT)
 
+    #Кнопка выстраивания планет в луч
+    ray_button = tkinter.Button(frame, text="Ray Mode", command=align_in_ray, width=10)
+    ray_button.pack(side=tkinter.LEFT, padx=5)
+
     time_step = tkinter.DoubleVar()
     time_step.set(0.05)
     tkinter.Entry(frame, textvariable=time_step, width=6).pack(side=tkinter.LEFT)
@@ -191,7 +206,6 @@ def build_simulation_ui():
 
     tkinter.Button(frame, text="Save", command=save_to_file, width=6).pack(side=tkinter.LEFT)
     tkinter.Button(frame, text="Load", command=load_from_file, width=6).pack(side=tkinter.LEFT)
-
     displayed_time = tkinter.StringVar()
     displayed_time.set(str(physical_time) + " seconds gone")
     tkinter.Label(frame, textvariable=displayed_time, width=30).pack(side=tkinter.RIGHT)
